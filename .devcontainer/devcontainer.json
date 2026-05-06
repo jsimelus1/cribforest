@@ -1,0 +1,24 @@
+{
+  "name": "CribForest",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.11" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "npm install || true",
+  "forwardPorts": [8000, 8888],
+  "portsAttributes": {
+    "8000": { "label": "CribForest static", "onAutoForward": "notify" },
+    "8888": { "label": "Netlify Dev",       "onAutoForward": "notify" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}
