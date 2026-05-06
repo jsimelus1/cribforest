@@ -1,0 +1,36 @@
+{
+  "count": 2000,
+  "price": {
+    "min": 0.0,
+    "max": 774806.9188
+  },
+  "sqft": {
+    "min": 1001.0,
+    "max": 4422.0
+  },
+  "year_built": {
+    "min": 1960.0,
+    "max": 2021.0
+  },
+  "median_income": {
+    "min": 13934.0,
+    "max": 185417.0
+  },
+  "poi_categories": [
+    "fire",
+    "police",
+    "early_childhood_school",
+    "elementary_school",
+    "middle_school",
+    "high_school",
+    "hospital",
+    "nursing_home",
+    "public_health",
+    "urgentcare",
+    "trailheads"
+  ],
+  "center": {
+    "lat": 37.18789677099054,
+    "lon": -93.28518816414811
+  }
+}
