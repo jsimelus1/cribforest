@@ -1,0 +1,11 @@
+{
+  "name": "cribforest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.0"
+  }
+}
