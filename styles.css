@@ -493,6 +493,43 @@ button { font-family: inherit; }
 .map-btn.active { background: var(--ember); border-color: var(--ember); color: var(--paper); }
 .map-btn-icon { font-size: 14px; line-height: 1; }
 
+/* Basemap switch — segmented control */
+.basemap-switch {
+  display: inline-flex;
+  background: rgba(22,25,28,0.92);
+  border: 1px solid var(--ink-3);
+  border-radius: 2px;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  align-self: flex-start;
+}
+.basemap-btn {
+  background: transparent;
+  color: var(--slate-soft);
+  border: 0;
+  padding: 7px 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+  border-right: 1px solid var(--ink-3);
+  transition: all 0.12s;
+}
+.basemap-btn:last-child { border-right: 0; }
+.basemap-btn:hover { color: var(--parchment); background: rgba(244,238,226,0.06); }
+.basemap-btn.active {
+  background: var(--ember);
+  color: var(--paper);
+}
+.basemap-btn.active:hover { background: var(--ember-deep); }
+
+/* When satellite is active, give markers a stronger outline */
+.satellite-mode .leaflet-interactive {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+
 .map-loading {
   position: absolute;
   inset: 0;

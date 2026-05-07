@@ -217,20 +217,113 @@ function scoreClass(s) {
 let map, propLayer, poiLayer;
 const propMarkerById = new Map();
 
+// Basemap definitions
+const BASEMAPS = {
+  dark: {
+    name: 'Dark',
+    layer: () => L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', {
+      attribution: '© OpenStreetMap · CARTO · CribForest',
+      subdomains: 'abcd',
+      maxZoom: 20,
+    }),
+    overlay: null,
+    bodyClass: '',
+  },
+  light: {
+    name: 'Light',
+    layer: () => L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
+      attribution: '© OpenStreetMap · CARTO · CribForest',
+      subdomains: 'abcd',
+      maxZoom: 20,
+    }),
+    overlay: null,
+    bodyClass: 'light-mode',
+  },
+  satellite: {
+    name: 'Satellite',
+    // ESRI World Imagery — free for non-commercial use, no API key needed
+    layer: () => L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, USDA · CribForest',
+        maxZoom: 19,
+      }
+    ),
+    // Place names overlay — readable labels on top of imagery
+    overlay: () => L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
+      {
+        attribution: '',
+        subdomains: 'abcd',
+        maxZoom: 20,
+        opacity: 0.9,
+      }
+    ),
+    bodyClass: 'satellite-mode',
+  },
+};
+
+let currentBasemapLayer = null;
+let currentBasemapOverlay = null;
+
+function setBasemap(key) {
+  const config = BASEMAPS[key] || BASEMAPS.dark;
+
+  // Remove old layers
+  if (currentBasemapLayer) map.removeLayer(currentBasemapLayer);
+  if (currentBasemapOverlay) map.removeLayer(currentBasemapOverlay);
+
+  // Add new layers
+  currentBasemapLayer = config.layer();
+  currentBasemapLayer.addTo(map);
+
+  if (config.overlay) {
+    currentBasemapOverlay = config.overlay();
+    currentBasemapOverlay.addTo(map);
+    // Bring overlay above markers? No — labels should sit ABOVE the basemap
+    // but BELOW markers. Leaflet does this naturally based on add order.
+  } else {
+    currentBasemapOverlay = null;
+  }
+
+  // Update body class for CSS hooks
+  document.body.classList.remove('light-mode', 'satellite-mode');
+  if (config.bodyClass) document.body.classList.add(config.bodyClass);
+
+  // Update button states
+  document.querySelectorAll('.basemap-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.basemap === key);
+  });
+
+  // Save preference
+  try { localStorage.setItem('cribforest:basemap', key); } catch {}
+
+  state.basemap = key;
+
+  // Re-render markers to update contrast (skip if not yet rendered)
+  if (typeof propLayer !== 'undefined' && propLayer && state.filtered) {
+    renderMapMarkers();
+  }
+}
+
 function initMap() {
   map = L.map('map', {
     zoomControl: true,
     preferCanvas: true,
   }).setView([state.meta.center.lat, state.meta.center.lon], 12);
 
-  // Stadia Stamen Toner-lite-ish: use CartoDB dark for editorial map
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png', {
-    attribution: '© OpenStreetMap · CARTO · CribForest',
-    subdomains: 'abcd',
-    maxZoom: 20,
-  }).addTo(map);
+  // Restore saved basemap preference, default to dark
+  let saved = 'dark';
+  try { saved = localStorage.getItem('cribforest:basemap') || 'dark'; } catch {}
+  if (!BASEMAPS[saved]) saved = 'dark';
+  setBasemap(saved);
 
-  // Cluster + circle markers
+  // Wire up the basemap toggle buttons
+  document.querySelectorAll('.basemap-btn').forEach(btn => {
+    btn.addEventListener('click', () => setBasemap(btn.dataset.basemap));
+  });
+
+  // Cluster + circle markers (created later by renderMapMarkers)
   propLayer = L.layerGroup().addTo(map);
   poiLayer = L.layerGroup();
 }
@@ -241,14 +334,24 @@ function renderMapMarkers() {
 
   const noPriorities = state.filtered.length > 0 && state.filtered[0]._total === 0;
 
+  // Satellite imagery is busy — bump marker outline contrast there
+  const onSatellite = state.basemap === 'satellite';
+  const onLight = state.basemap === 'light';
+  const strokeColor = onSatellite ? '#ffffff'
+                    : onLight ? '#16191c'
+                    : '#f4eee2';
+  const strokeWeight = onSatellite ? 1.5 : 1;
+  const fillOpacity = onSatellite ? 1 : 0.9;
+  const radius = onSatellite ? 6 : 5;
+
   for (const p of state.filtered) {
     const color = noPriorities ? '#7a8590' : scoreColor(p._score);
     const marker = L.circleMarker([p.lat, p.lon], {
-      radius: 5,
+      radius,
       fillColor: color,
-      color: '#f4eee2',
-      weight: 1,
-      fillOpacity: 0.9,
+      color: strokeColor,
+      weight: strokeWeight,
+      fillOpacity,
       className: 'prop-circle',
     });
     marker.on('click', () => {
