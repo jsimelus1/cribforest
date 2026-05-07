@@ -51,6 +51,7 @@ for (let i = 0; i < props.length; i += BATCH) {
   const query = `
     INSERT INTO properties (${PROP_COLS.join(',')})
     VALUES ${placeholders}
+    ON CONFLICT (id) DO NOTHING
   `;
 
   await sql.query(query, params);
