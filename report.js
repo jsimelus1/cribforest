@@ -26,16 +26,36 @@ const PAGE = { w: 215.9, h: 279.4, margin: 15 };
 const CONTENT_W = PAGE.w - PAGE.margin * 2;
 
 // ---------- helpers ----------
-const fmtMoney = n => n == null ? '—' : '$' + Math.round(n).toLocaleString();
-const fmtMoneyShort = n => {
-  if (n == null) return '—';
-  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
-  if (n >= 1e3) return '$' + Math.round(n/1e3) + 'K';
-  return '$' + Math.round(n);
+const fmtMoney = n => {
+  const x = num(n);
+  return x == null ? '—' : '$' + Math.round(x).toLocaleString();
 };
-const fmtNum = n => n == null ? '—' : Math.round(n).toLocaleString();
-const fmtTime = n => n == null ? '—' : n.toFixed(1) + ' min';
-const fmtDist = n => n == null ? '—' : n.toFixed(2) + ' mi';
+const fmtMoneyShort = n => {
+  const x = num(n);
+  if (x == null) return '—';
+  if (x >= 1e6) return '$' + (x/1e6).toFixed(1) + 'M';
+  if (x >= 1e3) return '$' + Math.round(x/1e3) + 'K';
+  return '$' + Math.round(x);
+};
+const fmtNum = n => {
+  const x = num(n);
+  return x == null ? '—' : Math.round(x).toLocaleString();
+};
+const fmtTime = n => {
+  const x = num(n);
+  return x == null ? '—' : x.toFixed(1) + ' min';
+};
+const fmtDist = n => {
+  const x = num(n);
+  return x == null ? '—' : x.toFixed(2) + ' mi';
+};
+
+// Coerce anything number-ish to a real number; null otherwise
+function num(v) {
+  if (v == null || v === '') return null;
+  const x = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(x) ? x : null;
+}
 const fmtDate = () => {
   const d = new Date();
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -389,8 +409,8 @@ function drawPropertyPage(doc, p, idx, total) {
   const ctxRows = [
     ['Median household income', fmtMoney(p.median_income)],
     ['Median home value',       fmtMoney(p.median_value)],
-    ['Owner-occupied',          p.pct_owner_occupied != null ? Math.round(p.pct_owner_occupied) + '%' : '—'],
-    ['Vacant',                  p.pct_vacant != null ? Math.round(p.pct_vacant) + '%' : '—'],
+    ['Owner-occupied',          num(p.pct_owner_occupied) != null ? Math.round(num(p.pct_owner_occupied)) + '%' : '—'],
+    ['Vacant',                  num(p.pct_vacant) != null ? Math.round(num(p.pct_vacant)) + '%' : '—'],
     ['Diversity',               capitalize(p.diversity || '—')],
     ['Education score',         p.education_score || '—'],
   ];
@@ -582,12 +602,12 @@ function drawTreeIcon(doc, x, y, size) {
 
 // ---------- aggregate stats ----------
 function avgPrice(matches) {
-  const ps = matches.map(m => m.price).filter(x => x != null);
+  const ps = matches.map(m => num(m.price)).filter(x => x != null);
   if (ps.length === 0) return '—';
   return fmtMoneyShort(ps.reduce((a, b) => a + b, 0) / ps.length);
 }
 function avgSqft(matches) {
-  const ss = matches.map(m => m.sqft).filter(x => x != null);
+  const ss = matches.map(m => num(m.sqft)).filter(x => x != null);
   if (ss.length === 0) return '—';
   return fmtNum(ss.reduce((a, b) => a + b, 0) / ss.length);
 }
@@ -596,9 +616,11 @@ function countPerfect(matches) {
 }
 
 function pctChange(v) {
-  if (v == null) return '—';
-  return (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+  const x = num(v);
+  if (x == null) return '—';
+  return (x > 0 ? '+' : '') + x.toFixed(1) + '%';
 }
+
 
 function capitalize(s) {
   if (!s) return '—';
