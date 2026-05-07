@@ -1,3 +1,4 @@
+cat > scripts/seed.js <<'SEEDEOF'
 // scripts/seed.js — seed Neon from the static JSON
 import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
@@ -17,7 +18,7 @@ const PROP_COLS = [
   'education_score','housing_category','pct_owner_occupied','pct_vacant',
   'pct_value_chg','county','state','accessibility'
 ];
-const COL_COUNT = PROP_COLS.length; // 24
+const COL_COUNT = PROP_COLS.length;
 
 function rowParams(p) {
   return [
@@ -35,12 +36,10 @@ const BATCH = 200;
 for (let i = 0; i < props.length; i += BATCH) {
   const slice = props.slice(i, i + BATCH);
 
-  // Build placeholders: ($1,$2,...,$24),($25,$26,...,$48),...
   const placeholders = slice.map((_, rowIdx) => {
     const start = rowIdx * COL_COUNT + 1;
     const phs = Array.from({ length: COL_COUNT }, (_, k) => {
       const n = start + k;
-      // Last column (accessibility) needs an explicit jsonb cast
       return k === COL_COUNT - 1 ? `$${n}::jsonb` : `$${n}`;
     });
     return `(${phs.join(',')})`;
@@ -67,3 +66,4 @@ for (const poi of pois) {
 }
 
 console.log('Done.');
+SEEDEOF
