@@ -3,12 +3,22 @@
    Builds on top of styles.css variables.
    ========================================================= */
 
+/* When the landing page is visible, let html scroll too */
+html:has(.landing-body) {
+  overflow-y: auto;
+  height: auto;
+}
+
 .landing-body {
   background: var(--paper);
   overflow-y: auto;       /* override styles.css overflow:hidden */
   height: auto;
   min-height: 100vh;
 }
+
+/* Override the html-level overflow:hidden inherited from styles.css */
+html { overflow: visible; }
+body.landing-body { overflow: visible; }
 
 /* Topbar — same DNA as the explore page but lighter */
 .landing-topbar {
