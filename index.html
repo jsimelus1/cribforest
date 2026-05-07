@@ -3,210 +3,133 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CribForest — Springfield, Missouri</title>
+<title>CribForest — Find your spot, anywhere in the US</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%2316191c'/><path d='M11 24 L11 19 L8 19 L14 11 L12 11 L18 4 L20 11 L18 11 L21 19 L18 19 L18 24 Z' fill='%237e9265'/><path d='M19 24 L19 16 L16 16 L22 7 L20 7 L26 1 L28 7 L26 7 L29 14 L26 14 L26 24 Z' fill='%237e9265' opacity='0.7'/></svg>">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="landing.css" />
 </head>
-<body>
+<body class="landing-body">
 
-<!-- ========== TOP BAR ========== -->
-<header class="topbar">
+<header class="landing-topbar">
   <div class="brand">
     <div class="logo-mark" aria-hidden="true">
       <svg viewBox="0 0 32 32" width="30" height="30">
-        <!-- canopy: layered tree silhouettes forming a small forest -->
-        <path d="M6 24 L6 18 L3 18 L8 11 L6 11 L11 5 L13 7 L13 11 L15 11 L11 17 L13 17 L13 24 Z"
-              fill="currentColor" opacity="0.55"/>
-        <path d="M19 24 L19 16 L16 16 L22 7 L20 7 L26 1 L28 7 L26 7 L29 14 L26 14 L26 24 Z"
-              fill="currentColor" opacity="0.85"/>
-        <path d="M11 24 L11 19 L8 19 L14 11 L12 11 L18 4 L20 11 L18 11 L21 19 L18 19 L18 24 Z"
-              fill="currentColor"/>
-        <!-- ground line -->
+        <path d="M6 24 L6 18 L3 18 L8 11 L6 11 L11 5 L13 7 L13 11 L15 11 L11 17 L13 17 L13 24 Z" fill="currentColor" opacity="0.55"/>
+        <path d="M19 24 L19 16 L16 16 L22 7 L20 7 L26 1 L28 7 L26 7 L29 14 L26 14 L26 24 Z" fill="currentColor" opacity="0.85"/>
+        <path d="M11 24 L11 19 L8 19 L14 11 L12 11 L18 4 L20 11 L18 11 L21 19 L18 19 L18 24 Z" fill="currentColor"/>
         <line x1="2" y1="26" x2="30" y2="26" stroke="currentColor" stroke-width="1" opacity="0.6"/>
       </svg>
     </div>
     <div class="brand-text">
       <h1>CribForest</h1>
-      <span class="tagline">Find your spot in Springfield</span>
+      <span class="tagline">Real-estate scored on your everyday life</span>
     </div>
   </div>
-  <nav class="topbar-nav">
-    <span class="nav-stat"><span id="stat-count">—</span> properties</span>
-    <span class="nav-stat"><span id="stat-median">—</span> median</span>
-    <button class="btn-ghost" id="btn-about">About</button>
-  </nav>
 </header>
 
-<!-- ========== MAIN LAYOUT ========== -->
-<main class="layout">
+<main class="landing-main">
+  <section class="hero">
+    <div class="hero-eyebrow">Now serving Springfield, Missouri · 2,000 homes scored</div>
+    <h2 class="hero-headline">
+      Find your spot.<br>
+      <span class="hero-em">Score the places that surround it.</span>
+    </h2>
+    <p class="hero-sub">
+      Most listings tell you what a home is. CribForest tells you where it puts you —
+      drive time to schools, hospitals, urgent care, fire, police, and trailheads.
+      Pick a location to begin.
+    </p>
 
-  <!-- ===== Filter rail ===== -->
-  <aside class="filter-rail" id="filter-rail">
-    <div class="rail-section">
-      <h2 class="rail-title">Find your crib</h2>
-      <p class="rail-sub">Score every Springfield home by what matters to <em>you</em>.</p>
-    </div>
-
-    <!-- Price -->
-    <div class="rail-section">
-      <label class="rail-label">Price range</label>
-      <div class="dual-range" data-key="price">
-        <input type="range" class="range-min" min="0" max="100" value="0" step="1"/>
-        <input type="range" class="range-max" min="0" max="100" value="100" step="1"/>
-        <div class="range-track"><div class="range-fill"></div></div>
+    <div class="search-card">
+      <label for="loc-input" class="search-label">Where are you looking?</label>
+      <div class="search-row">
+        <input
+          id="loc-input"
+          type="text"
+          class="search-input"
+          placeholder="State, city, or ZIP — e.g. Springfield, 65806, Missouri"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="search-clear" id="loc-clear" hidden aria-label="Clear">×</button>
       </div>
-      <div class="range-readout"><span id="price-min-label">$0</span><span id="price-max-label">$0</span></div>
-    </div>
-
-    <!-- Beds / Baths -->
-    <div class="rail-section grid-2">
-      <div>
-        <label class="rail-label">Beds</label>
-        <div class="pill-row" id="bed-pills">
-          <button class="pill" data-val="0">Any</button>
-          <button class="pill" data-val="1">1+</button>
-          <button class="pill" data-val="2">2+</button>
-          <button class="pill" data-val="3">3+</button>
-          <button class="pill" data-val="4">4+</button>
-        </div>
-      </div>
-      <div>
-        <label class="rail-label">Baths</label>
-        <div class="pill-row" id="bath-pills">
-          <button class="pill" data-val="0">Any</button>
-          <button class="pill" data-val="1">1+</button>
-          <button class="pill" data-val="2">2+</button>
-          <button class="pill" data-val="3">3+</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sqft -->
-    <div class="rail-section">
-      <label class="rail-label">Square footage</label>
-      <div class="dual-range" data-key="sqft">
-        <input type="range" class="range-min" min="0" max="100" value="0" step="1"/>
-        <input type="range" class="range-max" min="0" max="100" value="100" step="1"/>
-        <div class="range-track"><div class="range-fill"></div></div>
-      </div>
-      <div class="range-readout"><span id="sqft-min-label">—</span><span id="sqft-max-label">—</span></div>
-    </div>
-
-    <!-- Year built -->
-    <div class="rail-section">
-      <label class="rail-label">Year built</label>
-      <div class="dual-range" data-key="year">
-        <input type="range" class="range-min" min="0" max="100" value="0" step="1"/>
-        <input type="range" class="range-max" min="0" max="100" value="100" step="1"/>
-        <div class="range-track"><div class="range-fill"></div></div>
-      </div>
-      <div class="range-readout"><span id="year-min-label">—</span><span id="year-max-label">—</span></div>
-    </div>
-
-    <!-- Accessibility scoring -->
-    <div class="rail-section">
-      <div class="rail-label-row">
-        <label class="rail-label">Accessibility weights</label>
-        <span class="rail-hint" title="Set max acceptable drive time and importance for each amenity. Properties get scored on how well they meet your needs.">?</span>
-      </div>
-      <p class="rail-sub-tight">Drag to set max acceptable drive time. Toggle ★ to mark as important.</p>
-      <div class="poi-list" id="poi-list"><!-- injected --></div>
-    </div>
-
-    <!-- Reset / Apply -->
-    <div class="rail-section rail-actions">
-      <button class="btn-ghost" id="btn-reset">Reset</button>
-      <button class="btn-primary" id="btn-apply">Apply filters</button>
-    </div>
-  </aside>
-
-  <!-- ===== Map ===== -->
-  <section class="map-pane">
-    <div id="map"></div>
-    <div class="map-overlay">
-      <div class="map-legend">
-        <div class="legend-title">Match score</div>
-        <div class="legend-bar"></div>
-        <div class="legend-labels"><span>Low</span><span>Perfect</span></div>
-      </div>
-      <button class="map-btn" id="btn-toggle-pois" title="Toggle amenity locations">
-        <span class="map-btn-icon">◎</span> Amenities
-      </button>
-    </div>
-    <div class="map-loading" id="map-loading">
-      <div class="map-loading-inner">
-        <div class="spinner"></div>
-        <span>Loading 2,000 properties…</span>
-      </div>
+      <ul class="search-results" id="loc-results" role="listbox"></ul>
+      <div class="search-hint" id="loc-hint">Start typing — we match on city names, ZIPs, and states.</div>
     </div>
   </section>
 
-  <!-- ===== Listings ===== -->
-  <aside class="list-pane">
-    <div class="list-header">
-      <div>
-        <span class="list-count" id="list-count">—</span>
-        <span class="list-count-sub">homes shown</span>
-      </div>
-      <div class="sort-control">
-        <label for="sort-select">Sort:</label>
-        <select id="sort-select">
-          <option value="score">Match score</option>
-          <option value="price-asc">Price ↑</option>
-          <option value="price-desc">Price ↓</option>
-          <option value="sqft-desc">Sqft ↓</option>
-          <option value="year-desc">Newest</option>
-        </select>
-      </div>
+  <section class="hero-supporting">
+    <div class="metric">
+      <div class="metric-num">2,000</div>
+      <div class="metric-label">homes catalogued today</div>
     </div>
-    <div class="list-cards" id="list-cards"></div>
-    <div class="list-empty" id="list-empty" hidden>
-      <div class="list-empty-icon">⌖</div>
-      <p>No properties match. Try loosening your filters.</p>
+    <div class="metric">
+      <div class="metric-num">11</div>
+      <div class="metric-label">amenity categories scored</div>
     </div>
-  </aside>
+    <div class="metric">
+      <div class="metric-num">173</div>
+      <div class="metric-label">schools, hospitals &amp; more mapped</div>
+    </div>
+    <div class="metric">
+      <div class="metric-num">1</div>
+      <div class="metric-label">city live · more coming</div>
+    </div>
+  </section>
+
+  <section class="story">
+    <h3 class="story-title">Why one city first?</h3>
+    <p class="story-body">
+      Real-estate data isn't free. We license, clean, and route-compute drive times for every
+      property in our catalog — that's why our first market, Springfield, Missouri, has 2,000
+      properties scored against 173 amenities. Search for any city in the US to see if we cover
+      it. If we don't, leave your email and we'll let you know the moment your market goes live.
+    </p>
+  </section>
 </main>
 
-<!-- ========== DETAIL MODAL ========== -->
-<div class="modal" id="detail-modal" hidden>
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-card">
-    <button class="modal-close" data-close aria-label="Close">×</button>
-    <div class="modal-body" id="modal-body"><!-- injected --></div>
-  </div>
-</div>
-
-<!-- ========== ABOUT MODAL ========== -->
-<div class="modal" id="about-modal" hidden>
+<div class="modal" id="waitlist-modal" hidden>
   <div class="modal-backdrop" data-close></div>
   <div class="modal-card modal-card-narrow">
     <button class="modal-close" data-close aria-label="Close">×</button>
-    <div class="about-body">
-      <h2>About CribForest</h2>
-      <p class="about-lead">A real-estate explorer rooted in location intelligence — built for Springfield, Missouri. Find a crib that fits the life you're actually living.</p>
-      <p>Listing sites tell you <em>what</em> a home is. CribForest tells you <em>where it puts you</em>. Every property is scored on drive time and distance to 11 amenity categories — fire, police, schools at four levels, hospitals, urgent care, public health, nursing homes, and trailheads — using real OSRM-routed network distances on the OpenStreetMap road network.</p>
-      <h3>How match scoring works</h3>
-      <p>For each amenity you mark important, we check whether the home's drive time falls under your maximum. The match score is the share of your priorities the home satisfies. Homes that hit every priority earn a perfect match and surface to the top.</p>
-      <h3>Data sources</h3>
-      <ul class="about-list">
-        <li>2,000 Springfield properties with parcel-level geometry (UTM 15N, reprojected to WGS84)</li>
-        <li>American Community Survey 2018–2023 (income, race, education, occupancy)</li>
-        <li>Routed drive times via OpenStreetMap road network</li>
-        <li>FEMA flood intersections &amp; Springfield NSA boundaries</li>
-      </ul>
-      <p class="about-credits">CribForest · Springfield, MO · 2026</p>
+    <div class="waitlist-body">
+      <div class="waitlist-eyebrow" id="wl-eyebrow">Coming soon</div>
+      <h2 class="waitlist-title" id="wl-title">We don't cover this market yet</h2>
+      <p class="waitlist-sub" id="wl-sub">
+        Drop your email and we'll let you know the moment we launch in
+        <strong id="wl-location">your area</strong>. No spam, ever.
+      </p>
+
+      <form id="wl-form" class="wl-form">
+        <input
+          type="email"
+          id="wl-email"
+          class="wl-input"
+          placeholder="you@example.com"
+          required
+        />
+        <fieldset class="wl-role">
+          <legend>I'm a…</legend>
+          <label><input type="radio" name="role" value="buyer" checked> Buyer</label>
+          <label><input type="radio" name="role" value="realtor"> Realtor</label>
+          <label><input type="radio" name="role" value="other"> Just curious</label>
+        </fieldset>
+        <button type="submit" class="btn-primary wl-submit">Notify me</button>
+        <div class="wl-msg" id="wl-msg" role="status"></div>
+      </form>
     </div>
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-<script src="app.js"></script>
+<footer class="landing-footer">
+  <span>CribForest · Springfield, MO &amp; growing</span>
+  <span class="footer-sep">·</span>
+  <a href="explore.html?demo=springfield">See the demo</a>
+</footer>
+
+<script src="landing.js"></script>
 </body>
 </html>

@@ -3,9 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "seed:locations": "node scripts/seed_locations.js",
+    "build:locations": "python3 build_locations.py",
+    "dev": "netlify dev"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.0"
+    "@neondatabase/serverless": "^1.1.0"
   }
 }

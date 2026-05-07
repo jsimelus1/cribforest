@@ -53,15 +53,85 @@ const fmt = {
 };
 
 // ---------- data load ----------
+//
+// New in v2: the page expects URL parameters that name a location to load.
+// Supported params (one of):
+//   ?city=<id>      - city geoid from US Census
+//   ?zip=<5-digit>  - zip code
+//   ?state=<XX>     - state code
+//   ?demo=springfield - special: load static JSON files for local-only demo
+//   (none)          - bounce back to the landing page
+//
+// The label / lat / lon params are optional hints that improve the loading UX.
 async function loadData() {
-  const [meta, props, pois] = await Promise.all([
-    fetch('data/meta.json').then(r => r.json()),
-    fetch('data/properties.json').then(r => r.json()),
-    fetch('data/pois.json').then(r => r.json()),
-  ]);
+  const params = new URLSearchParams(window.location.search);
+  const demo = params.get('demo');
+  const city = params.get('city');
+  const zip = params.get('zip');
+  const stateCode = params.get('state');
+  const label = params.get('label');
+  const hintLat = parseFloat(params.get('lat'));
+  const hintLon = parseFloat(params.get('lon'));
+
+  // --- meta (always static; small file with shared config) ---
+  const metaPromise = fetch('data/meta.json').then(r => r.json());
+
+  if (demo === 'springfield' || (!city && !zip && !stateCode)) {
+    // Demo mode / no location specified — fall back to the static JSON catalog.
+    // For a real production deployment you'd redirect to the landing page;
+    // for development this lets you keep working offline.
+    if (!demo) {
+      // No location at all — send them back to the landing page.
+      window.location.href = 'index.html';
+      return;
+    }
+    const [meta, props, pois] = await Promise.all([
+      metaPromise,
+      fetch('data/properties.json').then(r => r.json()),
+      fetch('data/pois.json').then(r => r.json()),
+    ]);
+    state.meta = meta;
+    state.properties = props;
+    state.pois = pois;
+    state.locationLabel = 'Springfield, MO (demo)';
+    return;
+  }
+
+  // --- API mode ---
+  const apiParams = new URLSearchParams();
+  if (city) apiParams.set('city', city);
+  else if (zip) apiParams.set('zip', zip);
+  else if (stateCode) apiParams.set('state', stateCode);
+  apiParams.set('limit', '500');
+
+  const propsPromise = fetch(`/api/properties?${apiParams.toString()}`).then(r => {
+    if (!r.ok) throw new Error(`Properties API HTTP ${r.status}`);
+    return r.json();
+  });
+  const poisPromise = fetch('/api/pois').then(r => r.ok ? r.json() : []);
+
+  let meta, props, pois;
+  try {
+    [meta, props, pois] = await Promise.all([metaPromise, propsPromise, poisPromise]);
+  } catch (e) {
+    console.error('API load failed', e);
+    throw e;
+  }
+
+  // Synthesize a meta object centered on the chosen location
+  if (Number.isFinite(hintLat) && Number.isFinite(hintLon)) {
+    meta.center = { lat: hintLat, lon: hintLon };
+  } else if (props.length > 0) {
+    meta.center = {
+      lat: props.reduce((s, p) => s + p.lat, 0) / props.length,
+      lon: props.reduce((s, p) => s + p.lon, 0) / props.length,
+    };
+  }
+
   state.meta = meta;
   state.properties = props;
   state.pois = pois;
+  state.locationLabel = label || (city ? 'Selected city' : zip ? `ZIP ${zip}` : `State ${stateCode}`);
 }
 
 // ---------- filter init ----------
@@ -437,6 +507,10 @@ function updateTopStats() {
   const prices = state.filtered.map(p => p.price).filter(x => x != null).sort((a,b) => a-b);
   const median = prices.length ? prices[Math.floor(prices.length/2)] : null;
   document.getElementById('stat-median').textContent = fmt.priceShort(median);
+  const locEl = document.getElementById('nav-location');
+  if (locEl && state.locationLabel) {
+    locEl.textContent = state.locationLabel;
+  }
 }
 
 // ---------- filter UI wiring ----------
