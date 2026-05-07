@@ -816,4 +816,8 @@ async function boot() {
   setTimeout(() => document.getElementById('map-loading').classList.add('hidden'), 200);
 }
 
+// Expose for the PDF report module (report.js reads these via window.*)
+window.state = state;
+window.POI_META = POI_META;
+
 document.addEventListener('DOMContentLoaded', boot);

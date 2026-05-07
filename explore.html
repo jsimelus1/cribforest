@@ -170,6 +170,15 @@
         </select>
       </div>
     </div>
+    <div class="save-matches-bar" id="save-matches-bar">
+      <div class="save-matches-text">
+        <strong>Save your top matches</strong>
+        <span>Get a one-page PDF report with the homes that fit your priorities best.</span>
+      </div>
+      <button class="btn-primary save-matches-btn" id="btn-save-matches">
+        <span aria-hidden="true">↓</span> Save report
+      </button>
+    </div>
     <div class="list-cards" id="list-cards"></div>
     <div class="list-empty" id="list-empty" hidden>
       <div class="list-empty-icon">⌖</div>
@@ -210,10 +219,64 @@
   </div>
 </div>
 
+<!-- ========== SAVE MATCHES MODAL ========== -->
+<div class="modal" id="save-matches-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card modal-card-narrow">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="save-modal-body">
+      <div class="save-modal-eyebrow">Your top matches</div>
+      <h2 class="save-modal-title">Get your match report</h2>
+      <p class="save-modal-sub">
+        We'll generate a PDF with up to 10 homes that score highest against your priorities,
+        plus drive times to every amenity that matters to you. Optional email captures it for later.
+      </p>
+
+      <form id="save-form" class="save-form">
+        <label class="save-field">
+          <span class="save-field-label">Email <span class="save-field-optional">(optional)</span></span>
+          <input
+            type="email"
+            id="save-email"
+            class="save-input"
+            placeholder="you@example.com — get a copy emailed to you"
+          />
+        </label>
+
+        <div class="save-summary" id="save-summary">
+          <div class="save-summary-row">
+            <span class="save-summary-label">Location</span>
+            <span class="save-summary-value" id="save-summary-location">—</span>
+          </div>
+          <div class="save-summary-row">
+            <span class="save-summary-label">Filters</span>
+            <span class="save-summary-value" id="save-summary-filters">—</span>
+          </div>
+          <div class="save-summary-row">
+            <span class="save-summary-label">Priorities</span>
+            <span class="save-summary-value" id="save-summary-priorities">—</span>
+          </div>
+          <div class="save-summary-row">
+            <span class="save-summary-label">Top matches</span>
+            <span class="save-summary-value" id="save-summary-count">—</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary save-submit" id="save-submit">
+          Generate &amp; download PDF
+        </button>
+        <div class="save-msg" id="save-msg" role="status"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
+<script src="report.js"></script>
 </body>
 </html>
