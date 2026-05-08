@@ -138,11 +138,17 @@ button { font-family: inherit; }
   overflow-y: auto;
   padding: 20px 22px 32px;
   position: relative;
+  /* Soft fade at bottom edge signals "scrollable below the fold" */
+  mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
 }
 
+/* Always visible scrollbar so users find their way */
 .filter-rail::-webkit-scrollbar { width: 8px; }
-.filter-rail::-webkit-scrollbar-track { background: transparent; }
+.filter-rail::-webkit-scrollbar-track { background: rgba(217, 207, 184, 0.3); }
 .filter-rail::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+.filter-rail::-webkit-scrollbar-thumb:hover { background: var(--slate-soft); }
+.filter-rail { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
 
 .rail-section {
   padding: 14px 0;
@@ -305,26 +311,29 @@ button { font-family: inherit; }
 .poi-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 .poi-item {
   display: grid;
-  grid-template-columns: 24px 1fr auto;
+  grid-template-columns: 22px 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 8px 8px 0;
+  padding: 5px 8px 5px 0;
   border-radius: 2px;
   transition: background 0.12s;
 }
-.poi-item.active { background: rgba(200,80,26,0.06); }
+.poi-item.active {
+  background: rgba(200,80,26,0.06);
+  padding-bottom: 8px;
+}
 .poi-star {
   background: transparent;
   border: 0;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   color: var(--slate-soft);
   padding: 0;
-  width: 24px; height: 24px;
+  width: 22px; height: 22px;
   display: flex; align-items: center; justify-content: center;
   transition: color 0.15s, transform 0.15s;
 }
@@ -337,13 +346,14 @@ button { font-family: inherit; }
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 .poi-label-sub {
   font-size: 10px;
   color: var(--slate);
   font-weight: 400;
   letter-spacing: 0.04em;
+  margin-top: 1px;
 }
 .poi-time {
   font-family: var(--mono);
@@ -355,12 +365,13 @@ button { font-family: inherit; }
 
 .poi-time-slider {
   grid-column: 1 / -1;
-  margin: 6px 0 0 32px;
+  margin: 4px 0 0 30px;
   height: 14px;
   position: relative;
-  display: none;
+  display: block;
 }
-.poi-item.active .poi-time-slider { display: block; }
+.poi-item:not(.active) .poi-time-slider { opacity: 0.55; }
+.poi-item:not(.active) .poi-time-slider:hover { opacity: 0.85; }
 .poi-time-slider input {
   width: 100%;
   appearance: none;
