@@ -587,6 +587,104 @@ const detailModal = document.getElementById('detail-modal');
 const modalBody = document.getElementById('modal-body');
 let miniMap = null;
 
+// ---------- driving routes ----------
+// Lazy fetch from OSRM demo server. ToS: 1 req/sec, non-commercial, attribution required.
+// Cached in-memory for this session; route layers tracked per category for toggling.
+const routeCache = new Map();      // key: "lat1,lon1->lat2,lon2"  → GeoJSON LineString coords
+const activeRoutes = new Map();    // key: poi category  → Leaflet polyline currently shown
+let lastRouteRequestAt = 0;        // for the 1 req/sec rate limit
+
+async function fetchOsrmRoute(originLat, originLon, destLat, destLon) {
+  const key = `${originLat.toFixed(5)},${originLon.toFixed(5)}->${destLat.toFixed(5)},${destLon.toFixed(5)}`;
+  if (routeCache.has(key)) return routeCache.get(key);
+
+  // Soft rate limit: 1 req/sec to be a polite citizen of the OSRM demo server
+  const now = Date.now();
+  const sinceLast = now - lastRouteRequestAt;
+  if (sinceLast < 1100) {
+    await new Promise(r => setTimeout(r, 1100 - sinceLast));
+  }
+  lastRouteRequestAt = Date.now();
+
+  const url = `https://router.project-osrm.org/route/v1/driving/`
+            + `${originLon},${originLat};${destLon},${destLat}`
+            + `?overview=full&geometries=geojson&steps=false`;
+  const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!r.ok) throw new Error(`Routing failed (${r.status})`);
+  const data = await r.json();
+  if (!data.routes || data.routes.length === 0) throw new Error('No route found');
+  const route = data.routes[0];
+  // Leaflet expects [lat, lon]; OSRM gives [lon, lat]
+  const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+  const result = {
+    coords,
+    duration: route.duration,
+    distance: route.distance,
+  };
+  routeCache.set(key, result);
+  return result;
+}
+
+async function showRouteFor(category, button) {
+  const p = state.activeProperty;
+  if (!p || !miniMap) return;
+
+  // If route already showing for this category, toggle it off
+  if (activeRoutes.has(category)) {
+    miniMap.removeLayer(activeRoutes.get(category));
+    activeRoutes.delete(category);
+    button.classList.remove('active');
+    button.textContent = 'Show route';
+    // Restore the straight dashed connector
+    const dash = state._dashedLines?.get(category);
+    if (dash) miniMap.addLayer(dash);
+    return;
+  }
+
+  // Find the POI for this category on this property
+  const a = p.accessibility?.[category];
+  const matching = state.pois.find(x => x.category === category && x.address === a?.address);
+  if (!matching) {
+    button.textContent = 'No POI';
+    button.disabled = true;
+    return;
+  }
+
+  const originalText = button.textContent;
+  button.textContent = 'Loading…';
+  button.disabled = true;
+
+  try {
+    const route = await fetchOsrmRoute(p.lat, p.lon, matching.lat, matching.lon);
+    // Hide the straight dashed connector for this category if we have it cached
+    const dash = state._dashedLines?.get(category);
+    if (dash) miniMap.removeLayer(dash);
+    // Draw the solid routed polyline
+    const meta = POI_META[category] || {};
+    const color = meta.color || '#c8501a';
+    const line = L.polyline(route.coords, {
+      color, weight: 4, opacity: 0.85, lineCap: 'round',
+    }).addTo(miniMap);
+    activeRoutes.set(category, line);
+    button.classList.add('active');
+    button.textContent = 'Hide route';
+    button.disabled = false;
+    // Fit map to show the route
+    miniMap.fitBounds(line.getBounds(), { padding: [20, 20], maxZoom: 16 });
+  } catch (e) {
+    console.warn('Route fetch failed:', e.message);
+    button.textContent = 'Failed · retry';
+    button.disabled = false;
+  }
+}
+
+function clearAllRoutes() {
+  for (const [, line] of activeRoutes) {
+    if (miniMap) miniMap.removeLayer(line);
+  }
+  activeRoutes.clear();
+}
+
 function openDetail(p) {
   const sc = p._score ?? scoreProperty(p).score;
   const scClass = scoreClass(sc);
@@ -595,6 +693,7 @@ function openDetail(p) {
   const accessRows = state.meta.poi_categories.map(cat => {
     const a = p.accessibility?.[cat] || {};
     const meta = POI_META[cat] || { label: cat, icon: '·' };
+    const hasPoi = !!a.address;
     return `
       <div class="access-row">
         <div class="access-icon">${meta.icon}</div>
@@ -604,6 +703,9 @@ function openDetail(p) {
         </div>
         <div class="access-time">${fmt.time(a.drive_time)}</div>
         <div class="access-dist">${fmt.dist(a.drive_distance)}</div>
+        ${hasPoi
+          ? `<button class="show-route-btn" data-cat="${cat}" title="Show driving route on map">Show route</button>`
+          : `<button class="show-route-btn" disabled>—</button>`}
       </div>`;
   }).join('');
 
@@ -674,15 +776,24 @@ function openDetail(p) {
   `;
 
   detailModal.hidden = false;
+  state.activeProperty = p;
 
   // Mini map with property + nearest POIs
   setTimeout(() => {
     if (miniMap) { miniMap.remove(); miniMap = null; }
+    activeRoutes.clear();
+    state._dashedLines = new Map();
+
     miniMap = L.map('detail-mini-map', { zoomControl: false, attributionControl: false })
       .setView([p.lat, p.lon], 14);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png', {
       subdomains: 'abcd', maxZoom: 19,
     }).addTo(miniMap);
+
+    // Tiny attribution for OSRM (only shows when routes are visible — but always show OSM/CARTO)
+    L.control.attribution({ position: 'bottomright', prefix: false })
+      .addAttribution('© OSM · CARTO · Routes © OSRM')
+      .addTo(miniMap);
 
     L.circleMarker([p.lat, p.lon], {
       radius: 9, fillColor: '#c8501a', color: '#16191c', weight: 2, fillOpacity: 1,
@@ -691,7 +802,6 @@ function openDetail(p) {
     // For each accessibility feature, plot it
     for (const cat of state.meta.poi_categories) {
       const a = p.accessibility?.[cat];
-      // Find the matching POI object
       const matching = state.pois.find(x => x.category === cat && x.address === a?.address);
       if (!matching) continue;
       const meta = POI_META[cat] || { icon: '·' };
@@ -700,12 +810,18 @@ function openDetail(p) {
       L.marker([matching.lat, matching.lon], { icon })
         .bindTooltip(`${meta.label || cat}: ${matching.name || matching.address}`, { direction: 'top' })
         .addTo(miniMap);
-      // line from home to feature
-      L.polyline([[p.lat, p.lon], [matching.lat, matching.lon]], {
+      // Straight dashed connector — kept around so we can hide/restore when routes toggle
+      const dash = L.polyline([[p.lat, p.lon], [matching.lat, matching.lon]], {
         color: '#c8501a', weight: 1.5, opacity: 0.55, dashArray: '4 4',
       }).addTo(miniMap);
+      state._dashedLines.set(cat, dash);
     }
     miniMap.invalidateSize();
+
+    // Wire up the Show Route buttons in the access list
+    document.querySelectorAll('.access-row .show-route-btn').forEach(btn => {
+      btn.addEventListener('click', () => showRouteFor(btn.dataset.cat, btn));
+    });
   }, 50);
 
   document.getElementById('modal-close-btn')?.addEventListener('click', closeDetail);
@@ -714,6 +830,9 @@ function openDetail(p) {
 function closeDetail() {
   detailModal.hidden = true;
   if (miniMap) { miniMap.remove(); miniMap = null; }
+  activeRoutes.clear();
+  state._dashedLines = null;
+  state.activeProperty = null;
 }
 
 // ---------- top stats ----------
