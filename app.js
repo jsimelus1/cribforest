@@ -711,7 +711,12 @@ function openDetail(p) {
 
   const ownPct = Math.max(0, Math.min(100, p.pct_owner_occupied ?? 0));
   const vacPct = Math.max(0, Math.min(100, p.pct_vacant ?? 0));
-  const valChg = p.pct_value_chg;
+  const valChg = (() => {
+    const v = p.pct_value_chg;
+    if (v == null || v === '') return null;
+    const x = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(x) ? x : null;
+  })();
 
   modalBody.innerHTML = `
     <div class="detail-hero">
