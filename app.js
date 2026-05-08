@@ -588,39 +588,35 @@ const modalBody = document.getElementById('modal-body');
 let miniMap = null;
 
 // ---------- driving routes ----------
-// Lazy fetch from OSRM demo server. ToS: 1 req/sec, non-commercial, attribution required.
-// Cached in-memory for this session; route layers tracked per category for toggling.
-const routeCache = new Map();      // key: "lat1,lon1->lat2,lon2"  → GeoJSON LineString coords
+// Calls our own /api/route endpoint, which proxies Mapbox Directions and caches in Postgres.
+// First user pays the Mapbox cost for any (from, to) pair; everyone after gets it from cache.
+const routeCache = new Map();      // key: "lat1,lon1->lat2,lon2"  → { coords, duration, distance }
 const activeRoutes = new Map();    // key: poi category  → Leaflet polyline currently shown
-let lastRouteRequestAt = 0;        // for the 1 req/sec rate limit
 
-async function fetchOsrmRoute(originLat, originLon, destLat, destLon) {
+async function fetchRoute(originLat, originLon, destLat, destLon) {
   const key = `${originLat.toFixed(5)},${originLon.toFixed(5)}->${destLat.toFixed(5)},${destLon.toFixed(5)}`;
   if (routeCache.has(key)) return routeCache.get(key);
 
-  // Soft rate limit: 1 req/sec to be a polite citizen of the OSRM demo server
-  const now = Date.now();
-  const sinceLast = now - lastRouteRequestAt;
-  if (sinceLast < 1100) {
-    await new Promise(r => setTimeout(r, 1100 - sinceLast));
+  const params = new URLSearchParams({
+    from_lat: originLat,
+    from_lng: originLon,
+    to_lat:   destLat,
+    to_lng:   destLon,
+  });
+  const r = await fetch(`/api/route?${params.toString()}`);
+  if (!r.ok) {
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Routing failed (${r.status}) ${detail.slice(0, 120)}`);
   }
-  lastRouteRequestAt = Date.now();
-
-  const url = `https://router.project-osrm.org/route/v1/driving/`
-            + `${originLon},${originLat};${destLon},${destLat}`
-            + `?overview=full&geometries=geojson&steps=false`;
-  const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!r.ok) throw new Error(`Routing failed (${r.status})`);
   const data = await r.json();
-  if (!data.routes || data.routes.length === 0) throw new Error('No route found');
-  const route = data.routes[0];
-  // Leaflet expects [lat, lon]; OSRM gives [lon, lat]
-  const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-  const result = {
-    coords,
-    duration: route.duration,
-    distance: route.distance,
-  };
+  if (!data.geometry || !data.geometry.coordinates) {
+    throw new Error('Malformed route response');
+  }
+
+  // Server returns GeoJSON LineString ([lon, lat] per the standard).
+  // Leaflet wants [lat, lon] — flip it once, here.
+  const coords = data.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+  const result = { coords, duration: data.duration, distance: data.distance };
   routeCache.set(key, result);
   return result;
 }
@@ -655,7 +651,7 @@ async function showRouteFor(category, button) {
   button.disabled = true;
 
   try {
-    const route = await fetchOsrmRoute(p.lat, p.lon, matching.lat, matching.lon);
+    const route = await fetchRoute(p.lat, p.lon, matching.lat, matching.lon);
     // Hide the straight dashed connector for this category if we have it cached
     const dash = state._dashedLines?.get(category);
     if (dash) miniMap.removeLayer(dash);
@@ -759,7 +755,7 @@ function openDetail(p) {
       </div>
 
       <div class="detail-section span-2">
-        <div class="section-label">Drive-time accessibility (OSRM-routed)</div>
+        <div class="section-label">Drive-time accessibility</div>
         <div class="access-list">${accessRows}</div>
       </div>
 
@@ -797,7 +793,7 @@ function openDetail(p) {
 
     // Tiny attribution for OSRM (only shows when routes are visible — but always show OSM/CARTO)
     L.control.attribution({ position: 'bottomright', prefix: false })
-      .addAttribution('© OSM · CARTO · Routes © OSRM')
+      .addAttribution('© OSM · CARTO · Routes © Mapbox')
       .addTo(miniMap);
 
     L.circleMarker([p.lat, p.lon], {
