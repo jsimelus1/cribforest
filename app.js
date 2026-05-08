@@ -475,6 +475,113 @@ function selectProperty(id, opts = {}) {
   openDetail(p);
 }
 
+// ---------- safety/community section ----------
+
+/**
+ * Build URLs for outbound safety resources. We never republish offender data;
+ * we just send the user to authoritative or specialist sites.
+ */
+function safetyLinks(p) {
+  const addr = encodeURIComponent(p.address || '');
+  const cityState = encodeURIComponent(`${p.county || ''} ${p.state || ''}`.trim());
+  const stateLower = (p.state || '').toLowerCase();
+
+  // State sex offender registry (Missouri default; expandable per state later)
+  const registryByState = {
+    mo: 'https://www.mshp.dps.missouri.gov/MSHPWeb/PatrolDivisions/CRID/SOR/SORPage.html',
+    // add others as we expand: il, ks, ar, ok, etc.
+  };
+  const stateRegistry = registryByState[stateLower] || 'https://www.nsopw.gov/';
+
+  // National Sex Offender Public Website — works in all states, address-searchable
+  const nsopw = `https://www.nsopw.gov/?searchQuery=${addr}`;
+
+  return {
+    stateRegistry,
+    nsopw,
+    spotcrime: `https://spotcrime.com/?s=${addr}`,
+    neighborhoodScout: `https://www.neighborhoodscout.com/${stateLower}/search?address=${addr}`,
+    crimeMap: `https://crimegrade.org/safest-places-in-${stateLower}/`,
+  };
+}
+
+function renderSafetySection(p) {
+  const links = safetyLinks(p);
+  const score = p.safety_score;
+  const agencyName = p.safety_agency_name || '';
+  const reportingYear = p.safety_reporting_year || '';
+
+  // Score badge (only if we have data)
+  let scoreBlock = '';
+  if (score != null) {
+    const scoreClass = score >= 70 ? 'safety-good'
+                     : score >= 40 ? 'safety-mid'
+                     : 'safety-low';
+    const scoreLabel = score >= 70 ? 'Above Missouri average'
+                     : score >= 40 ? 'Around Missouri average'
+                     : 'Below Missouri average';
+    scoreBlock = `
+      <div class="safety-score-card ${scoreClass}">
+        <div class="safety-score-num">${score}<span>/100</span></div>
+        <div class="safety-score-meta">
+          <div class="safety-score-label">${scoreLabel}</div>
+          <div class="safety-score-sub">FBI UCR ${reportingYear} · ${agencyName}</div>
+        </div>
+      </div>
+    `;
+  } else {
+    scoreBlock = `
+      <div class="safety-score-card safety-pending">
+        <div class="safety-score-num">—</div>
+        <div class="safety-score-meta">
+          <div class="safety-score-label">Score not available</div>
+          <div class="safety-score-sub">FBI UCR data hasn't been seeded for this market yet</div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    ${scoreBlock}
+    <div class="safety-links">
+      <a class="safety-link" href="${links.stateRegistry}" target="_blank" rel="noopener noreferrer">
+        <span class="safety-link-icon">↗</span>
+        <span class="safety-link-text">
+          <strong>State sex offender registry</strong>
+          <span>Official ${(p.state || '').toUpperCase()} registry · search by address</span>
+        </span>
+      </a>
+      <a class="safety-link" href="${links.nsopw}" target="_blank" rel="noopener noreferrer">
+        <span class="safety-link-icon">↗</span>
+        <span class="safety-link-text">
+          <strong>National sex offender registry (NSOPW)</strong>
+          <span>U.S. Dept. of Justice · multi-jurisdiction search</span>
+        </span>
+      </a>
+      <a class="safety-link" href="${links.spotcrime}" target="_blank" rel="noopener noreferrer">
+        <span class="safety-link-icon">↗</span>
+        <span class="safety-link-text">
+          <strong>SpotCrime — recent incidents</strong>
+          <span>Real-time crime reports plotted on a map</span>
+        </span>
+      </a>
+      <a class="safety-link" href="${links.neighborhoodScout}" target="_blank" rel="noopener noreferrer">
+        <span class="safety-link-icon">↗</span>
+        <span class="safety-link-text">
+          <strong>NeighborhoodScout — area safety</strong>
+          <span>Detailed crime &amp; demographics analysis</span>
+        </span>
+      </a>
+    </div>
+    <p class="safety-caveat">
+      <strong>Important:</strong> Crime statistics describe areas, not individual people or homes,
+      and reflect <em>reported</em> crimes only. Statistics should never be the sole basis for a housing
+      decision. Sex offender registry data is provided by the linked official sources and should be
+      verified directly with them.
+    </p>
+  `;
+}
+
 // ---------- detail modal ----------
 const detailModal = document.getElementById('detail-modal');
 const modalBody = document.getElementById('modal-body');
@@ -547,6 +654,11 @@ function openDetail(p) {
       <div class="detail-section span-2">
         <div class="section-label">Drive-time accessibility (OSRM-routed)</div>
         <div class="access-list">${accessRows}</div>
+      </div>
+
+      <div class="detail-section span-2">
+        <div class="section-label">Safety &amp; community resources</div>
+        ${renderSafetySection(p)}
       </div>
 
       <div class="detail-section span-2">

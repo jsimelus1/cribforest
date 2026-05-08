@@ -438,6 +438,59 @@ function drawPropertyPage(doc, p, idx, total) {
     };
   });
   drawAccessibilityTable(doc, accRows, PAGE.margin, y, CONTENT_W);
+
+  // ---- Safety footer (bottom of page) ----
+  drawSafetyFooter(doc, p);
+}
+
+function drawSafetyFooter(doc, p) {
+  const y = PAGE.h - 40;
+  doc.setDrawColor(...COLOR.rule);
+  doc.setLineWidth(0.2);
+  doc.line(PAGE.margin, y, PAGE.w - PAGE.margin, y);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...COLOR.ember_deep);
+  doc.text('SAFETY & COMMUNITY', PAGE.margin, y + 5);
+
+  // Safety score (left)
+  const score = num(p.safety_score);
+  if (score != null) {
+    const reportingYear = p.safety_reporting_year || '';
+    const agency = p.safety_agency_name || '';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    const scoreColor = score >= 70 ? COLOR.moss
+                     : score >= 40 ? COLOR.gold
+                     : COLOR.ember_deep;
+    doc.setTextColor(...scoreColor);
+    doc.text(`Safety score: ${score}/100`, PAGE.margin, y + 12);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...COLOR.slate);
+    doc.text(`FBI UCR ${reportingYear} · ${agency}`, PAGE.margin, y + 16);
+  } else {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...COLOR.slate);
+    doc.text('FBI safety score not available for this market.', PAGE.margin, y + 12);
+  }
+
+  // Resources note (right)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...COLOR.slate);
+  const resourcesText = 'For sex offender registry & detailed crime data, see cribforest.com';
+  doc.text(resourcesText, PAGE.w - PAGE.margin, y + 12, { align: 'right' });
+
+  // Caveat
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...COLOR.slate);
+  const caveat = 'Crime stats describe areas, not individuals or specific homes. Reflects reported crimes only.';
+  doc.text(caveat, PAGE.margin, y + 22);
 }
 
 function drawFactsGrid(doc, facts, x, y, w) {
@@ -620,7 +673,6 @@ function pctChange(v) {
   if (x == null) return '—';
   return (x > 0 ? '+' : '') + x.toFixed(1) + '%';
 }
-
 
 function capitalize(s) {
   if (!s) return '—';

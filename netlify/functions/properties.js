@@ -33,26 +33,32 @@ export default async (req) => {
   const maxYear  = +p.get('maxYear')  || 2100;
   const limit    = Math.min(+p.get('limit') || 500, 1000);
 
-  // Build the geo predicate
+  // Build the geo predicate (using p. alias since we join with crime_agencies)
   let geoClause;
-  if (city) geoClause = sql`AND city_id = ${city}`;
-  else if (zip) geoClause = sql`AND zip = ${zip}`;
-  else geoClause = sql`AND state = ${state}`;
+  if (city) geoClause = sql`AND p.city_id = ${city}`;
+  else if (zip) geoClause = sql`AND p.zip = ${zip}`;
+  else geoClause = sql`AND p.state = ${state}`;
 
   const rows = await sql`
-    SELECT id, address, zip, nsa, zoning, lat, lon, price,
-           bedrooms, bathrooms, sqft, lot_size, year_built,
-           median_income, median_value, diversity, education_score,
-           housing_category, pct_owner_occupied, pct_vacant,
-           pct_value_chg, county, state, accessibility, city_id
-    FROM properties
-    WHERE COALESCE(price, 0) BETWEEN ${minPrice} AND ${maxPrice}
-      AND COALESCE(bedrooms, 0)  >= ${minBeds}
-      AND COALESCE(bathrooms, 0) >= ${minBaths}
-      AND COALESCE(sqft, 0) BETWEEN ${minSqft} AND ${maxSqft}
-      AND COALESCE(year_built, 1800) BETWEEN ${minYear} AND ${maxYear}
+    SELECT p.id, p.address, p.zip, p.nsa, p.zoning, p.lat, p.lon, p.price,
+           p.bedrooms, p.bathrooms, p.sqft, p.lot_size, p.year_built,
+           p.median_income, p.median_value, p.diversity, p.education_score,
+           p.housing_category, p.pct_owner_occupied, p.pct_vacant,
+           p.pct_value_chg, p.county, p.state, p.accessibility, p.city_id,
+           a.agency_name AS safety_agency_name,
+           a.safety_score AS safety_score,
+           a.violent_crime_rate AS safety_violent_rate,
+           a.property_crime_rate AS safety_property_rate,
+           a.reporting_year AS safety_reporting_year
+    FROM properties p
+    LEFT JOIN crime_agencies a ON a.ori = p.primary_agency_ori
+    WHERE COALESCE(p.price, 0) BETWEEN ${minPrice} AND ${maxPrice}
+      AND COALESCE(p.bedrooms, 0)  >= ${minBeds}
+      AND COALESCE(p.bathrooms, 0) >= ${minBaths}
+      AND COALESCE(p.sqft, 0) BETWEEN ${minSqft} AND ${maxSqft}
+      AND COALESCE(p.year_built, 1800) BETWEEN ${minYear} AND ${maxYear}
       ${geoClause}
-    ORDER BY price ASC NULLS LAST
+    ORDER BY p.price ASC NULLS LAST
     LIMIT ${limit}
   `;
 
