@@ -1,18 +1,18 @@
 // netlify/functions/route.js
 //
 // Server-side proxy to Mapbox Directions API.
-// Caches results in Postgres so that the first user to request a route
-// pays the Mapbox cost, and every user after that gets it instantly.
+// Caches results in Postgres so the first user pays the Mapbox cost
+// and every user after gets it from cache.
 //
 // Request:  GET /api/route?from_lat=..&from_lng=..&to_lat=..&to_lng=..
 // Response: { geometry: { type: "LineString", coordinates: [[lon,lat], ...] }, distance, duration }
 
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
 
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
-const COORD_PRECISION = 5; // ~1.1m precision; treats near-identical queries as the same cache row
+const COORD_PRECISION = 5;
 
 let schemaReady = false;
 async function ensureSchema() {
@@ -39,7 +39,7 @@ const cors = {
   'Content-Type': 'application/json',
 };
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   try {
     if (!MAPBOX_TOKEN) {
       return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'MAPBOX_TOKEN not configured' }) };
@@ -58,7 +58,6 @@ exports.handler = async (event) => {
     await ensureSchema();
     const key = makeKey(fromLat, fromLng, toLat, toLng);
 
-    // Cache lookup
     const cached = await sql`
       SELECT geometry, distance_m, duration_s
       FROM route_cache
@@ -77,7 +76,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Mapbox call. Note: Mapbox expects lng,lat (the GeoJSON convention).
     const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}` +
                 `?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
@@ -94,12 +92,11 @@ exports.handler = async (event) => {
 
     const route = data.routes[0];
     const payload = {
-      geometry: route.geometry,   // GeoJSON LineString — coordinates are [lon, lat]
-      distance: route.distance,   // meters
-      duration: route.duration,   // seconds
+      geometry: route.geometry,
+      distance: route.distance,
+      duration: route.duration,
     };
 
-    // Cache (best effort — don't fail the request if write fails)
     try {
       await sql`
         INSERT INTO route_cache (cache_key, geometry, distance_m, duration_s)
