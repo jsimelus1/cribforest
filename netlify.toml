@@ -1,0 +1,32 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/route"
+  to = "/.netlify/functions/route"
+  status = 200
+
+[[redirects]]
+  from = "/api/properties"
+  to = "/.netlify/functions/properties"
+  status = 200
+
+[[redirects]]
+  from = "/api/pois"
+  to = "/.netlify/functions/pois"
+  status = 200
+
+[[redirects]]
+  from = "/api/locations-search"
+  to = "/.netlify/functions/locations-search"
+  status = 200
+
+[[redirects]]
+  from = "/api/save-report"
+  to = "/.netlify/functions/save-report"
+  status = 200
+
+[[redirects]]
+  from = "/api/waitlist"
+  to = "/.netlify/functions/waitlist"
+  status = 200
