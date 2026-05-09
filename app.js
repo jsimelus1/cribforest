@@ -640,7 +640,8 @@ async function showRouteFor(category, button) {
 
   // Find the POI for this category on this property
   const a = p.accessibility?.[category];
-  const matching = state.pois.find(x => x.category === category && x.address === a?.address);
+  const matching = state.pois.find(x => x.category === category &&
+  (x.address === a?.address || x.name === a?.name));
   if (!matching) {
     button.textContent = 'No POI';
     button.disabled = true;
@@ -804,7 +805,8 @@ function openDetail(p) {
     // For each accessibility feature, plot it
     for (const cat of state.meta.poi_categories) {
       const a = p.accessibility?.[cat];
-      const matching = state.pois.find(x => x.category === cat && x.address === a?.address);
+      const matching = state.pois.find(x => x.category === cat &&
+        (x.address === a?.address || x.name === a?.name));
       if (!matching) continue;
       const meta = POI_META[cat] || { icon: '·' };
       const html = `<div class="poi-marker ${cat}">${meta.icon}</div>`;
