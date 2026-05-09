@@ -34,6 +34,7 @@ const POI_META = {
   middle_school:          { label: 'Middle school',         icon: 'MS', default_max: 8,  default_active: false },
   high_school:            { label: 'High school',           icon: 'HS', default_max: 10, default_active: false },
   trailheads:             { label: 'Trail head',            icon: 'TR', default_max: 10, default_active: false },
+  shopping_center:        { label: 'Shopping center',       icon: 'SC', default_max: 10, default_active: false },
 };
 
 // ---------- formatters ----------
