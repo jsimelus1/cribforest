@@ -10,7 +10,6 @@
 import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
-
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 const COORD_PRECISION = 5;
 
@@ -34,25 +33,26 @@ function makeKey(fromLat, fromLng, toLat, toLng) {
   return `${r(fromLat)},${r(fromLng)};${r(toLat)},${r(toLng)}`;
 }
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Content-Type': 'application/json',
-};
+const jsonHeaders = { 'Content-Type': 'application/json' };
 
-export const handler = async (event) => {
+export default async (req) => {
   try {
     if (!MAPBOX_TOKEN) {
-      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'MAPBOX_TOKEN not configured' }) };
+      return new Response(JSON.stringify({ error: 'MAPBOX_TOKEN not configured' }), {
+        status: 500, headers: jsonHeaders,
+      });
     }
 
-    const q = event.queryStringParameters || {};
-    const fromLat = parseFloat(q.from_lat);
-    const fromLng = parseFloat(q.from_lng);
-    const toLat   = parseFloat(q.to_lat);
-    const toLng   = parseFloat(q.to_lng);
+    const url = new URL(req.url);
+    const fromLat = parseFloat(url.searchParams.get('from_lat'));
+    const fromLng = parseFloat(url.searchParams.get('from_lng'));
+    const toLat   = parseFloat(url.searchParams.get('to_lat'));
+    const toLng   = parseFloat(url.searchParams.get('to_lng'));
 
     if ([fromLat, fromLng, toLat, toLng].some(Number.isNaN)) {
-      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Missing or invalid from_lat, from_lng, to_lat, to_lng' }) };
+      return new Response(JSON.stringify({ error: 'Missing or invalid from_lat, from_lng, to_lat, to_lng' }), {
+        status: 400, headers: jsonHeaders,
+      });
     }
 
     await ensureSchema();
@@ -65,29 +65,32 @@ export const handler = async (event) => {
       LIMIT 1
     `;
     if (cached.length > 0) {
-      return {
-        statusCode: 200,
-        headers: { ...cors, 'X-Cache': 'HIT' },
-        body: JSON.stringify({
-          geometry: cached[0].geometry,
-          distance: cached[0].distance_m,
-          duration: cached[0].duration_s,
-        }),
-      };
+      return new Response(JSON.stringify({
+        geometry: cached[0].geometry,
+        distance: cached[0].distance_m,
+        duration: cached[0].duration_s,
+      }), {
+        status: 200,
+        headers: { ...jsonHeaders, 'X-Cache': 'HIT' },
+      });
     }
 
     const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}` +
-                `?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+    const mapboxUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}` +
+                     `?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
 
-    const r = await fetch(url);
+    const r = await fetch(mapboxUrl);
     if (!r.ok) {
       const text = await r.text();
-      return { statusCode: 502, headers: cors, body: JSON.stringify({ error: 'Mapbox upstream error', status: r.status, detail: text.slice(0, 300) }) };
+      return new Response(JSON.stringify({ error: 'Mapbox upstream error', status: r.status, detail: text.slice(0, 300) }), {
+        status: 502, headers: jsonHeaders,
+      });
     }
     const data = await r.json();
     if (!data.routes || data.routes.length === 0) {
-      return { statusCode: 404, headers: cors, body: JSON.stringify({ error: 'No route found', code: data.code }) };
+      return new Response(JSON.stringify({ error: 'No route found', code: data.code }), {
+        status: 404, headers: jsonHeaders,
+      });
     }
 
     const route = data.routes[0];
@@ -107,13 +110,16 @@ export const handler = async (event) => {
       console.error('route_cache insert failed:', e.message);
     }
 
-    return {
-      statusCode: 200,
-      headers: { ...cors, 'X-Cache': 'MISS' },
-      body: JSON.stringify(payload),
-    };
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { ...jsonHeaders, 'X-Cache': 'MISS' },
+    });
   } catch (err) {
     console.error('route function error:', err);
-    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: err.message }) };
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: jsonHeaders,
+    });
   }
 };
+
+export const config = { path: '/api/route' };

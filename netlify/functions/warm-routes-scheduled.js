@@ -1,21 +1,15 @@
 // netlify/functions/warm-routes-scheduled.js
 //
-// Scheduled job that warms the route_cache by draining route_warm_queue.
-// Runs every 10 minutes. Each invocation processes BATCH_SIZE routes,
-// targeting ~5 seconds total to stay well under the 10s timeout.
+// Scheduled job that drains route_warm_queue, calling Mapbox for each
+// pending row and persisting to route_cache. Runs every 10 minutes,
+// processes a small batch each invocation to stay under the 10s timeout.
 
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 const BATCH_SIZE = 8;
-const MAX_ATTEMPTS = 3; // give up on a row after 3 failures
-
-const COORD_PRECISION = 5;
-const cacheKey = (a, b, c, d) => {
-  const r = (n) => Number(n).toFixed(COORD_PRECISION);
-  return `${r(a)},${r(b)};${r(c)},${r(d)}`;
-};
+const MAX_ATTEMPTS = 3;
 
 async function fetchAndCache(row) {
   const coords = `${row.from_lng},${row.from_lat};${row.to_lng},${row.to_lat}`;
@@ -33,14 +27,11 @@ async function fetchAndCache(row) {
   await sql`DELETE FROM route_warm_queue WHERE cache_key = ${row.cache_key}`;
 }
 
-exports.handler = async () => {
+export default async () => {
   if (!MAPBOX_TOKEN) {
-    return { statusCode: 500, body: 'MAPBOX_TOKEN not configured' };
+    return new Response('MAPBOX_TOKEN not configured', { status: 500 });
   }
 
-  // Pull a small batch of unprocessed rows. SKIP LOCKED would be ideal but
-  // Neon's serverless driver doesn't support transactional row locking the
-  // same way; with one scheduled invocation at a time the race is fine.
   const batch = await sql`
     SELECT cache_key, from_lat, from_lng, to_lat, to_lng
     FROM route_warm_queue
@@ -50,7 +41,9 @@ exports.handler = async () => {
   `;
 
   if (batch.length === 0) {
-    return { statusCode: 200, body: JSON.stringify({ message: 'queue empty' }) };
+    return new Response(JSON.stringify({ message: 'queue empty' }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   let ok = 0, fail = 0;
@@ -58,7 +51,6 @@ exports.handler = async () => {
     try {
       await fetchAndCache(row);
       ok++;
-      // Light throttle so 8 calls in 5-6 seconds, comfortable under timeout
       await new Promise(r => setTimeout(r, 600));
     } catch (e) {
       fail++;
@@ -70,8 +62,9 @@ exports.handler = async () => {
     }
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ processed: batch.length, ok, fail }),
-  };
+  return new Response(JSON.stringify({ processed: batch.length, ok, fail }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  });
 };
+
+export const config = { schedule: '*/10 * * * *' };
