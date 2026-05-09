@@ -27,7 +27,8 @@
     "nursing_home",
     "public_health",
     "urgentcare",
-    "trailheads"
+    "trailheads",
+    "shopping_center"
   ],
   "center": {
     "lat": 37.18789677099054,
