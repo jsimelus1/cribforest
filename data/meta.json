@@ -28,7 +28,9 @@
     "public_health",
     "urgentcare",
     "trailheads",
-    "shopping_center"
+    "shopping_center",
+    "park",
+    "theme_park"
   ],
   "center": {
     "lat": 37.18789677099054,
