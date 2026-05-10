@@ -30,3 +30,8 @@
   from = "/api/waitlist"
   to = "/.netlify/functions/waitlist"
   status = 200
+
+[[redirects]]
+  from = "/api/hpi"
+  to = "/.netlify/functions/hpi"
+  status = 200
