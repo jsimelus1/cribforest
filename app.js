@@ -1219,7 +1219,7 @@ function initMobileUI() {
     const hamburger = document.createElement('button');
     hamburger.className = 'topbar-hamburger';
     hamburger.setAttribute('aria-label', 'Menu');
-    hamburger.innerHTML = '<span></span><span></span><span></span>';
+    hamburger.innerHTML = '☰';
 
     const menu = document.createElement('div');
     menu.className = 'topbar-menu';
