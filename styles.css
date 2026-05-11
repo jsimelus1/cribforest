@@ -1712,7 +1712,7 @@ button { font-family: inherit; }
 
 /* For very narrow screens (older / smaller phones) — extra tightening */
 @media (max-width: 640px) {
- /* --- Hamburger menu button --- */
+  /* --- Hamburger menu button --- */
   .topbar-hamburger {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.25);
@@ -1754,6 +1754,53 @@ button { font-family: inherit; }
     width: auto;
     padding: 0 12px;
     gap: 4px;
+  }
+
+  /* Hide the Change location + About buttons on mobile —
+     they live inside the hamburger menu instead */
+  .topbar-nav .btn-ghost {
+    display: none;
+  }
+
+  /* Hamburger dropdown panel */
+  .topbar-menu {
+    position: absolute;
+    top: 100%;
+    right: 14px;
+    background: var(--paper, #1c2024);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 180px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .topbar-menu[data-open="true"] {
+    display: block;
+  }
+  .topbar-menu a,
+  .topbar-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: var(--ink, #f4eee2);
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 6px;
+  }
+  .topbar-menu a:hover,
+  .topbar-menu button:hover {
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* Topbar must be position:relative so the menu can absolute-position to it */
+  .topbar {
+    position: relative;
   }
 
   /* Nav row: stats, forced to its own line and visible */
