@@ -1193,7 +1193,7 @@ async function boot() {
   initMap();
   bindUi();
   refresh();
-  initMobileViewToggle();
+  initMobileUI();
   // hide loader
   setTimeout(() => document.getElementById('map-loading').classList.add('hidden'), 200);
 }
@@ -1203,16 +1203,55 @@ window.state = state;
 window.POI_META = POI_META;
 
 // ---------- Mobile map/list toggle ----------
-function initMobileViewToggle() {
-  // Only inject on mobile-sized screens at boot — CSS handles whether it's visible
+// ---------- Mobile UI: view toggle + hamburger menu ----------
+function initMobileUI() {
   if (window.innerWidth > 640) {
-    document.body.dataset.mobileView = 'list'; // harmless default for desktop
+    document.body.dataset.mobileView = 'list';
     return;
   }
 
-  // Default to list on first load
   document.body.dataset.mobileView = 'list';
 
+  // --- Hamburger menu: move Change location + About into a dropdown ---
+  const topbar = document.querySelector('.topbar');
+  const brand = topbar?.querySelector('.brand');
+  if (topbar && brand) {
+    const hamburger = document.createElement('button');
+    hamburger.className = 'topbar-hamburger';
+    hamburger.setAttribute('aria-label', 'Menu');
+    hamburger.innerHTML = '<span></span><span></span><span></span>';
+
+    const menu = document.createElement('div');
+    menu.className = 'topbar-menu';
+    menu.innerHTML = `
+      <a href="index.html">Change location</a>
+      <button type="button" data-action="about">About</button>
+    `;
+
+    // Place hamburger right after the brand
+    brand.insertAdjacentElement('afterend', hamburger);
+    topbar.appendChild(menu);
+
+    hamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = menu.dataset.open === 'true';
+      menu.dataset.open = open ? 'false' : 'true';
+    });
+
+    menu.querySelector('[data-action="about"]')?.addEventListener('click', () => {
+      menu.dataset.open = 'false';
+      document.getElementById('about-modal').hidden = false;
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== hamburger) {
+        menu.dataset.open = 'false';
+      }
+    });
+  }
+
+  // --- View toggle (LIST / MAP) ---
   const layout = document.querySelector('.layout');
   if (!layout) return;
 
@@ -1222,7 +1261,6 @@ function initMobileViewToggle() {
     <button data-view="list" class="active">List</button>
     <button data-view="map">Map</button>
   `;
-  // Insert as the first child of .layout so CSS grid-area "toggle" picks it up
   layout.insertBefore(toggle, layout.firstChild);
 
   toggle.querySelectorAll('button').forEach(btn => {
@@ -1232,7 +1270,6 @@ function initMobileViewToggle() {
       toggle.querySelectorAll('button').forEach(b =>
         b.classList.toggle('active', b === btn)
       );
-      // Leaflet needs a kick when its container changes visibility/size
       if (v === 'map' && typeof map !== 'undefined' && map) {
         setTimeout(() => map.invalidateSize(), 50);
       }

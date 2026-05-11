@@ -1711,8 +1711,94 @@ button { font-family: inherit; }
 }
 
 /* For very narrow screens (older / smaller phones) — extra tightening */
-@media (max-width: 380px) {
-  .topbar .brand-text h1 { font-size: 16px; }
-  .topbar-nav { font-size: 11px; gap: 6px 10px; }
-  .nav-stat#nav-location { display: none; } /* save space — location is in the URL/heading anyway */
+@media (max-width: 640px) {
+  /* --- Hamburger menu button (injected by app.js) --- */
+  .topbar-hamburger {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--ink, #f4eee2);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .topbar-hamburger span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+
+  /* Hide the Change location + About buttons on mobile —
+     they live inside the hamburger menu instead */
+  .topbar-nav .btn-ghost {
+    display: none;
+  }
+
+  /* Hamburger dropdown panel */
+  .topbar-menu {
+    position: absolute;
+    top: 100%;
+    right: 14px;
+    background: var(--paper, #1c2024);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 180px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .topbar-menu[data-open="true"] {
+    display: block;
+  }
+  .topbar-menu a,
+  .topbar-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: var(--ink, #f4eee2);
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 6px;
+  }
+  .topbar-menu a:hover,
+  .topbar-menu button:hover {
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* Topbar must be position:relative so the menu can absolute-position to it */
+  .topbar {
+    position: relative;
+  }
+
+  /* Nav row: just the stats now, properly spaced */
+  .topbar-nav {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: center;
+    font-size: 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+  .topbar-nav .nav-stat {
+    white-space: nowrap;
+    flex: 0 1 auto;
+  }
 }
