@@ -624,6 +624,136 @@ async function fetchRoute(originLat, originLon, destLat, destLon) {
   return result;
 }
 
+// ---------- HPI (FHFA House Price Index) ----------
+// Cached per ZIP across the session
+const hpiCache = new Map();
+
+async function fetchHpi(zip, stateName) {
+  const key = `${zip}|${stateName}`;
+  if (hpiCache.has(key)) return hpiCache.get(key);
+  const params = new URLSearchParams();
+  if (zip) params.set('zip', zip);
+  if (stateName) params.set('state', stateName);
+  const r = await fetch(`/api/hpi?${params}`);
+  if (!r.ok) {
+    hpiCache.set(key, null);
+    return null;
+  }
+  const data = await r.json();
+  hpiCache.set(key, data);
+  return data;
+}
+
+// Compute property-level projections from area rates.
+// Returns [{ horizon: 1|3|5, low, mid, high }] or null if insufficient data.
+function computeProjections(currentPrice, hpi) {
+  if (!hpi || currentPrice == null || currentPrice <= 0) return null;
+  const r1 = hpi.rate_1yr;
+  const r3 = hpi.rate_3yr_avg;
+  const r5 = hpi.rate_5yr_avg;
+
+  const projections = [];
+
+  if (r1 != null) {
+    const mid = currentPrice * (1 + r1 / 100);
+    projections.push({ horizon: 1, low: mid * 0.95, mid, high: mid * 1.05 });
+  }
+  if (r3 != null) {
+    const mid = currentPrice * Math.pow(1 + r3 / 100, 3);
+    projections.push({ horizon: 3, low: mid * 0.90, mid, high: mid * 1.10 });
+  }
+  if (r5 != null) {
+    const mid = currentPrice * Math.pow(1 + r5 / 100, 5);
+    projections.push({ horizon: 5, low: mid * 0.85, mid, high: mid * 1.15 });
+  }
+
+  return projections.length > 0 ? projections : null;
+}
+
+function renderAppreciationSection(p, hpi) {
+  if (!hpi) {
+    return `
+      <div class="appreciation-empty">
+        <p style="color:var(--slate); font-size:13px; margin:0;">
+          FHFA House Price Index data isn't available for this area yet.
+        </p>
+      </div>
+    `;
+  }
+
+  const sourceNote = hpi.source === 'zip'
+    ? `FHFA HPI for ZIP ${hpi.zip}`
+    : `FHFA HPI for ${hpi.state} (state average — ZIP-level data unavailable for this area)`;
+
+  const yearNote = hpi.hpi_year < 2025
+    ? ` &middot; <em style="color:var(--coal-warm); font-style:normal;">Most recent data: ${hpi.hpi_year}</em>`
+    : '';
+
+  const fmtRate = (r) => {
+    if (r == null) return '—';
+    const sign = r >= 0 ? '+' : '';
+    const cls = r >= 0 ? 'rate-positive' : 'rate-negative';
+    return `<span class="${cls}">${sign}${r.toFixed(1)}%</span>`;
+  };
+
+  const fmtAnnualized = (r) => {
+    if (r == null) return '';
+    const sign = r >= 0 ? '+' : '';
+    return ` <span style="color:var(--slate); font-size:12px;">(${sign}${r.toFixed(1)}%/yr avg)</span>`;
+  };
+
+  // Cumulative figures for 3yr and 5yr (compounded)
+  const cum3 = hpi.rate_3yr_avg != null ? (Math.pow(1 + hpi.rate_3yr_avg / 100, 3) - 1) * 100 : null;
+  const cum5 = hpi.rate_5yr_avg != null ? (Math.pow(1 + hpi.rate_5yr_avg / 100, 5) - 1) * 100 : null;
+
+  const historicalRows = `
+    <div class="hpi-row">
+      <span class="hpi-period">1 year</span>
+      <span class="hpi-value">${fmtRate(hpi.rate_1yr)}</span>
+    </div>
+    <div class="hpi-row">
+      <span class="hpi-period">3 years</span>
+      <span class="hpi-value">${fmtRate(cum3)}${fmtAnnualized(hpi.rate_3yr_avg)}</span>
+    </div>
+    <div class="hpi-row">
+      <span class="hpi-period">5 years</span>
+      <span class="hpi-value">${fmtRate(cum5)}${fmtAnnualized(hpi.rate_5yr_avg)}</span>
+    </div>
+  `;
+
+  const projections = computeProjections(p.price, hpi);
+  let projectionBlock = '';
+  if (projections && p.price != null) {
+    const projRows = projections.map(pj => `
+      <div class="proj-row">
+        <span class="proj-horizon">${pj.horizon} year${pj.horizon > 1 ? 's' : ''}</span>
+        <span class="proj-range">${fmt.priceShort(pj.low)} – ${fmt.priceShort(pj.high)}</span>
+      </div>
+    `).join('');
+
+    projectionBlock = `
+      <div class="projection-subsection">
+        <div class="projection-title">If this trend continued</div>
+        ${projRows}
+        <p class="projection-disclaimer">
+          Projections apply this area's historical appreciation rate to the current price.
+          They are not appraisals, predictions, or guarantees. Local conditions, the specific
+          home, and market shifts can produce very different outcomes. Do not rely on these
+          numbers for purchase or financing decisions.
+        </p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="hpi-content">
+      ${historicalRows}
+      <p class="hpi-source">Source: ${sourceNote}${yearNote}</p>
+      ${projectionBlock}
+    </div>
+  `;
+}
+
 async function showRouteFor(category, button) {
   const p = state.activeProperty;
   if (!p || !miniMap) return;
@@ -769,10 +899,16 @@ function openDetail(p) {
       </div>
 
       <div class="detail-section span-2">
+        <div class="section-label">Area appreciation (historical)</div>
+        <div id="hpi-content-slot">
+          <p style="color:var(--slate); font-size:13px; margin:0;">Loading…</p>
+        </div>
+      </div>
+
+      <div class="detail-section span-2">
         <div class="section-label">On the map</div>
         <div id="detail-mini-map"></div>
       </div>
-    </div>
 
     <div class="detail-cta">
       <button class="btn-primary" id="modal-close-btn">Back to results</button>
@@ -829,6 +965,14 @@ function openDetail(p) {
       btn.addEventListener('click', () => showRouteFor(btn.dataset.cat, btn));
     });
   }, 50);
+
+  // Fetch and render HPI in the background
+  (async () => {
+    const slot = document.getElementById('hpi-content-slot');
+    if (!slot) return;
+    const hpi = await fetchHpi(p.zip, p.state);
+    slot.innerHTML = renderAppreciationSection(p, hpi);
+  })();
 
   document.getElementById('modal-close-btn')?.addEventListener('click', closeDetail);
 }

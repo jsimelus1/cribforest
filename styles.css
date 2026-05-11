@@ -1436,3 +1436,92 @@ button { font-family: inherit; }
   .detail-content { grid-template-columns: 1fr; }
   .detail-section + .detail-section { border-left: 0; }
 }
+
+/* ---------- HPI / appreciation section ---------- */
+.hpi-content {
+  background: var(--paper);
+  border: 1px solid var(--ash);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.hpi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ash);
+}
+.hpi-row:last-of-type {
+  border-bottom: none;
+}
+
+.hpi-period {
+  color: var(--slate);
+  font-size: 14px;
+}
+
+.hpi-value {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.rate-positive { color: #6b8052; }
+.rate-negative { color: #c8501a; }
+
+.hpi-source {
+  color: var(--slate);
+  font-size: 12px;
+  margin: 12px 0 0 0;
+  font-style: italic;
+}
+
+.appreciation-empty {
+  padding: 12px;
+  background: var(--paper);
+  border: 1px solid var(--ash);
+  border-radius: 8px;
+}
+
+/* Forward projection — visually subordinate to historical */
+.projection-subsection {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--ash);
+}
+
+.projection-title {
+  color: var(--slate);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.proj-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.proj-horizon {
+  color: var(--slate);
+}
+
+.proj-range {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.projection-disclaimer {
+  margin: 14px 0 0 0;
+  padding: 10px 12px;
+  background: rgba(200, 80, 26, 0.05);
+  border-left: 3px solid #c8501a;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--coal-warm);
+  border-radius: 0 4px 4px 0;
+}
