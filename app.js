@@ -1193,6 +1193,7 @@ async function boot() {
   initMap();
   bindUi();
   refresh();
+  initMobileViewToggle();
   // hide loader
   setTimeout(() => document.getElementById('map-loading').classList.add('hidden'), 200);
 }
@@ -1200,5 +1201,43 @@ async function boot() {
 // Expose for the PDF report module (report.js reads these via window.*)
 window.state = state;
 window.POI_META = POI_META;
+
+// ---------- Mobile map/list toggle ----------
+function initMobileViewToggle() {
+  // Only inject on mobile-sized screens at boot — CSS handles whether it's visible
+  if (window.innerWidth > 640) {
+    document.body.dataset.mobileView = 'list'; // harmless default for desktop
+    return;
+  }
+
+  // Default to list on first load
+  document.body.dataset.mobileView = 'list';
+
+  const layout = document.querySelector('.layout');
+  if (!layout) return;
+
+  const toggle = document.createElement('div');
+  toggle.className = 'mobile-view-toggle';
+  toggle.innerHTML = `
+    <button data-view="list" class="active">List</button>
+    <button data-view="map">Map</button>
+  `;
+  // Insert as the first child of .layout so CSS grid-area "toggle" picks it up
+  layout.insertBefore(toggle, layout.firstChild);
+
+  toggle.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.view;
+      document.body.dataset.mobileView = v;
+      toggle.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('active', b === btn)
+      );
+      // Leaflet needs a kick when its container changes visibility/size
+      if (v === 'map' && typeof map !== 'undefined' && map) {
+        setTimeout(() => map.invalidateSize(), 50);
+      }
+    });
+  });
+}
 
 document.addEventListener('DOMContentLoaded', boot);
