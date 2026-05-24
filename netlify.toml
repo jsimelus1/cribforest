@@ -35,3 +35,12 @@
   from = "/api/hpi"
   to = "/.netlify/functions/hpi"
   status = 200
+
+  # --- Coming-soon mode ---
+# Every non-API request gets the coming-soon page.
+# Comment out this block when you're ready to relaunch.
+[[redirects]]
+  from = "/*"
+  to = "/coming-soon.html"
+  status = 200
+  force = true
