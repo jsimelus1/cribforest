@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CribForest — Launching soon</title>
+<meta name="description" content="Real-estate scored on your everyday life. Drive time to the places that matter — schools, hospitals, parks, shopping. Launching soon in mid-Missouri.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%2316191c'/><path d='M11 24 L11 19 L8 19 L14 11 L12 11 L18 4 L20 11 L18 11 L21 19 L18 19 L18 24 Z' fill='%237e9265'/><path d='M19 24 L19 16 L16 16 L22 7 L20 7 L26 1 L28 7 L26 7 L29 14 L26 14 L26 24 Z' fill='%237e9265' opacity='0.7'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #f4eee2;
+    --paper: #16191c;
+    --slate: #98a0aa;
+    --ember: #c8501a;
+    --moss: #6b8052;
+    --ash: #2a2f35;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+  }
+  .container {
+    max-width: 540px;
+    width: 100%;
+  }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+    color: var(--moss);
+  }
+  .logo h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+    font-size: 36px;
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .status-pill {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ember);
+    border: 1px solid rgba(200, 80, 26, 0.4);
+    background: rgba(200, 80, 26, 0.08);
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
+  .headline {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.015em;
+  }
+  .headline em {
+    color: var(--moss);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .sub {
+    color: var(--slate);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 32px 0;
+  }
+  .signup {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--ash);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 28px;
+    text-align: left;
+  }
+  .signup-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 0 0 4px 0;
+  }
+  .signup-sub {
+    color: var(--slate);
+    font-size: 14px;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+  }
+  .field {
+    margin-bottom: 12px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--slate);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--ash);
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 15px;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--moss);
+    background: rgba(0, 0, 0, 0.45);
+  }
+  .field input::placeholder {
+    color: rgba(152, 160, 170, 0.5);
+  }
+  button {
+    width: 100%;
+    background: var(--ember);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background 0.15s;
+    margin-top: 4px;
+  }
+  button:hover { background: #b54818; }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  .success {
+    background: rgba(107, 128, 82, 0.12);
+    border: 1px solid rgba(107, 128, 82, 0.4);
+    border-radius: 8px;
+    padding: 18px;
+    color: var(--moss);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    display: none;
+  }
+  .error {
+    background: rgba(200, 80, 26, 0.12);
+    border: 1px solid rgba(200, 80, 26, 0.4);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--ember);
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
+  .footer {
+    color: var(--slate);
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .footer a { color: var(--moss); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 480px) {
+    .logo h1 { font-size: 28px; }
+    .headline { font-size: 24px; }
+    .sub { font-size: 15px; }
+    .signup { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="logo" aria-hidden="true">
+    <svg viewBox="0 0 32 32" width="40" height="40">
+      <path d="M6 24 L6 18 L3 18 L8 11 L6 11 L11 5 L13 7 L13 11 L15 11 L11 17 L13 17 L13 24 Z" fill="currentColor" opacity="0.55"/>
+      <path d="M19 24 L19 16 L16 16 L22 7 L20 7 L26 1 L28 7 L26 7 L29 14 L26 14 L26 24 Z" fill="currentColor" opacity="0.85"/>
+      <path d="M11 24 L11 19 L8 19 L14 11 L12 11 L18 4 L20 11 L18 11 L21 19 L18 19 L18 24 Z" fill="currentColor"/>
+      <line x1="2" y1="26" x2="30" y2="26" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+    </svg>
+    <h1>CribForest</h1>
+  </div>
+
+  <div class="status-pill">Launching soon</div>
+
+  <h2 class="headline">
+    Real-estate scored on
+    <em>your everyday life.</em>
+  </h2>
+
+  <p class="sub">
+    Most listings tell you what a home is. CribForest tells you where it puts you —
+    drive time to schools, hospitals, parks, shopping, and the places that shape
+    your day. Coming first to mid-Missouri.
+  </p>
+
+  <div class="signup" id="signup-card">
+    <div class="signup-title">Be first to know</div>
+    <p class="signup-sub">
+      Join the waitlist and we'll let you know the moment CribForest opens in your area.
+    </p>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
+    </div>
+    <div class="field">
+      <label for="location">Where are you looking?</label>
+      <input type="text" id="location" placeholder="Columbia, Springfield, ZIP code, or city" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="role">You are…</label>
+      <select id="role">
+        <option value="buyer">A buyer or future buyer</option>
+        <option value="realtor">A realtor or broker</option>
+        <option value="curious">Just curious</option>
+      </select>
+    </div>
+    <button id="submit-btn" type="button">Join the waitlist</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <div class="success" id="success">
+    Thanks — you're on the list. We'll reach out when CribForest goes live in your area.
+  </div>
+
+  <div class="footer">
+    Questions? <a href="mailto:team@cribforest.com">team@cribforest.com</a>
+  </div>
+</div>
+
+<script>
+const btn = document.getElementById('submit-btn');
+const errEl = document.getElementById('error');
+const signupCard = document.getElementById('signup-card');
+const successEl = document.getElementById('success');
+
+function showError(msg) {
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+}
+
+async function submit() {
+  errEl.style.display = 'none';
+  const email = document.getElementById('email').value.trim();
+  const location = document.getElementById('location').value.trim();
+  const role = document.getElementById('role').value;
+
+  if (!email || !email.includes('@')) {
+    showError('Please enter a valid email address.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Joining…';
+
+  try {
+    const r = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, location, role }),
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      throw new Error(text.slice(0, 120) || `Signup failed (${r.status})`);
+    }
+    signupCard.style.display = 'none';
+    successEl.style.display = 'block';
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Join the waitlist';
+    showError(e.message || 'Something went wrong. Please try again.');
+  }
+}
+
+btn.addEventListener('click', submit);
+document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+document.getElementById('location').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+</script>
+
+</body>
+</html>
